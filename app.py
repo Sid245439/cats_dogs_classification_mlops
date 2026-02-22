@@ -58,7 +58,12 @@ def load_model():
         logger.error(f"Failed to load model: {e}")
 
 
-app = FastAPI(title="Cats vs Dogs Prediction API")
+app = FastAPI(
+    title="Cats vs Dogs Prediction API",
+    description="Binary image classification for pet adoption platform",
+    docs_url="/docs",
+    redoc_url="/redoc",
+)
 
 
 @app.middleware("http")
@@ -95,7 +100,7 @@ async def metrics():
 
 
 @app.post("/predict")
-async def predict(file: UploadFile = File(...)):
+async def predict(file: UploadFile = File(..., description="Cat or dog image (jpg/png)")):
     if MODEL is None:
         raise HTTPException(500, "Model not loaded")
     try:
@@ -124,5 +129,11 @@ async def predict(file: UploadFile = File(...)):
 async def root():
     return {
         "service": "Cats vs Dogs Prediction API",
-        "endpoints": {"/health": "GET", "/predict": "POST (multipart image)", "/metrics": "GET"},
+        "docs": "/docs",
+        "redoc": "/redoc",
+        "endpoints": {
+            "/health": "GET",
+            "/predict": "POST (multipart image) – use Swagger at /docs",
+            "/metrics": "GET",
+        },
     }

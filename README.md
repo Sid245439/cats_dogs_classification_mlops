@@ -55,6 +55,7 @@ python -c "from src.training import train_and_track; train_and_track(epochs=5)"
 uvicorn app:app --host 0.0.0.0 --port 8000
 ```
 
+- **Swagger UI**: `GET /docs` – interactive API docs for testing POST /predict
 - Health: `GET /health`
 - Predict: `POST /predict` (multipart image file)
 - Metrics: `GET /metrics` (Prometheus)

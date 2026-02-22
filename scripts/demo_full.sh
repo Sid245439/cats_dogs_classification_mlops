@@ -25,8 +25,8 @@ $PYTHON scripts/prepare_data.py
 $PYTHON -c "from src.training import train_and_track; train_and_track(epochs=2)"
 docker build -t cats-dogs-mlops .
 docker rm -f api 2>/dev/null || true
-# No volume mount - model is baked into image (COPY happens after training)
-docker run -d -p 8000:8000 --name api cats-dogs-mlops
+# Mount models from host (training runs first, so model exists)
+docker run -d -p 8000:8000 -v "$(pwd)/models:/app/models:ro" --name api cats-dogs-mlops
 
 echo ""
 echo "Waiting for API..."
