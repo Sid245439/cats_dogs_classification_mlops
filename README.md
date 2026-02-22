@@ -60,6 +60,22 @@ uvicorn app:app --host 0.0.0.0 --port 8000
 - Predict: `POST /predict` (multipart image file)
 - Metrics: `GET /metrics` (Prometheus)
 
+### Prometheus
+
+1. **Start the API** (uvicorn or Docker) on port 8000.
+2. **Run Prometheus:**
+   ```bash
+   docker run -d -p 9090:9090 \
+     -v $(pwd)/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml \
+     prom/prometheus --config.file=/etc/prometheus/prometheus.yml
+   ```
+3. **Open** http://localhost:9090 → Status → Targets (verify scrape).
+4. **Query** e.g. `cats_dogs_api_requests_total` or `rate(cats_dogs_api_request_latency_seconds_sum[1m])`.
+
+   **Linux:** In `prometheus.yml`, use `172.17.0.1:8000` instead of `host.docker.internal:8000`.
+
+   **Without Docker:** `brew install prometheus` (macOS), then `prometheus --config.file=monitoring/prometheus-host.yml`.
+
 ### 3. Docker
 
 ```bash
