@@ -19,7 +19,11 @@ from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_sc
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-import seaborn as sns
+try:
+    import seaborn as sns
+    HAS_SEABORN = True
+except ImportError:
+    HAS_SEABORN = False
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
@@ -111,8 +115,18 @@ def train_and_track(
     # Confusion matrix artifact
     cm = confusion_matrix(y_test, y_pred)
     fig, ax = plt.subplots(figsize=(6, 4))
-    sns.heatmap(cm, annot=True, fmt="d", cmap="Blues", ax=ax,
-                xticklabels=["cat", "dog"], yticklabels=["cat", "dog"])
+    if HAS_SEABORN:
+        sns.heatmap(cm, annot=True, fmt="d", cmap="Blues", ax=ax,
+                    xticklabels=["cat", "dog"], yticklabels=["cat", "dog"])
+    else:
+        ax.imshow(cm, cmap="Blues")
+        ax.set_xticks([0, 1])
+        ax.set_yticks([0, 1])
+        ax.set_xticklabels(["cat", "dog"])
+        ax.set_yticklabels(["cat", "dog"])
+        for i in range(2):
+            for j in range(2):
+                ax.text(j, i, str(cm[i, j]), ha="center", va="center")
     ax.set_title("Confusion Matrix")
     plt.tight_layout()
     cm_path = "logs/confusion_matrix.png"
