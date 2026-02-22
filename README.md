@@ -76,6 +76,14 @@ uvicorn app:app --host 0.0.0.0 --port 8000
 
    **Without Docker:** `brew install prometheus` (macOS), then `prometheus --config.file=monitoring/prometheus-host.yml`.
 
+### Stress test (for Prometheus metrics)
+
+```bash
+# Ensure API + Prometheus are running, then:
+python scripts/stress_test.py http://localhost:8000 200 20
+# 200 requests, 20 concurrent – check Prometheus for cats_dogs_api_requests_total
+```
+
 ### 3. Docker
 
 ```bash
