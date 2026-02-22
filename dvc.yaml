@@ -1,0 +1,21 @@
+stages:
+  prepare:
+    cmd: python scripts/prepare_data.py
+    deps:
+      - scripts/prepare_data.py
+      - src/preprocessing.py
+      - data/raw
+    outs:
+      - data/processed/dataset.npz
+
+  train:
+    cmd: python -c "from src.training import train_and_track; train_and_track()"
+    deps:
+      - scripts/prepare_data.py
+      - src/preprocessing.py
+      - src/training.py
+      - data/processed/dataset.npz
+    params:
+      - src/training.py
+    outs:
+      - models/model.h5

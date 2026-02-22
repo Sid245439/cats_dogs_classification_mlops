@@ -1,0 +1,33 @@
+# MLOps Assignment 2 - Cats vs Dogs
+# Version pinning for reproducibility
+
+# Core
+numpy==1.26.4
+pillow==10.2.0
+scikit-learn==1.4.0
+
+# ML/Training
+tensorflow==2.15.0
+
+# Experiment tracking
+mlflow==2.10.2
+
+# API
+fastapi==0.109.2
+uvicorn[standard]==0.27.1
+python-multipart==0.0.9
+
+# Monitoring
+prometheus-client==0.20.0
+
+# Utils
+pydantic==2.6.1
+python-dotenv==1.0.1
+
+# Optional: Kaggle data download
+kaggle==1.6.12
+
+# Dev/Test
+pytest==8.0.2
+pytest-cov==4.1.0
+requests==2.31.0

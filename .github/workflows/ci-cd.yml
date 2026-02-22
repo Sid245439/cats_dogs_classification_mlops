@@ -1,0 +1,135 @@
+name: MLOps CI/CD Pipeline
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+env:
+  REGISTRY: ghcr.io
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Create sample data (for tests)
+        run: |
+          python scripts/download_data.py
+
+      - name: Run unit tests
+        run: |
+          pytest tests/ -v --tb=short
+
+  train:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Download and prepare data
+        run: |
+          python scripts/download_data.py
+          python scripts/prepare_data.py
+
+      - name: Train model
+        run: |
+          python -c "from src.training import train_and_track; train_and_track(epochs=2)"
+
+      - name: Upload model
+        uses: actions/upload-artifact@v4
+        with:
+          name: models
+          path: models/
+
+  build:
+    needs: train
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download model
+        uses: actions/download-artifact@v4
+        with:
+          name: models
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Container Registry
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: |
+            ${{ env.REGISTRY }}/${{ github.repository }}:latest
+            ${{ env.REGISTRY }}/${{ github.repository }}:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy:
+    needs: build
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Pull and run image
+        run: |
+          IMG="${{ env.REGISTRY }}/${{ github.repository }}:latest"
+          docker pull $IMG
+          docker run -d --name api -p 8000:8000 $IMG
+          sleep 20
+
+      - name: Smoke tests - Health
+        run: |
+          curl -sf http://localhost:8000/health | grep -q '"status":"healthy"' || (echo "Health check failed" && exit 1)
+
+      - name: Smoke tests - Prediction
+        run: |
+          pip install requests pillow numpy
+          python scripts/smoke_test.py http://localhost:8000 || (echo "Smoke test failed" && exit 1)
+
+      - name: Cleanup
+        if: always()
+        run: docker rm -f api 2>/dev/null || true
