@@ -81,6 +81,14 @@ jobs:
         with:
           name: models
 
+      - name: Verify model (artifact may extract to workspace root)
+        run: |
+          mkdir -p models
+          if [ -f model.h5 ] && [ ! -f models/model.h5 ]; then mv model.h5 models/; fi
+          if [ -f model.keras ] && [ ! -f models/model.keras ]; then mv model.keras models/; fi
+          ls -la models/
+          test -f models/model.h5 || test -f models/model.keras || (echo "No model file found" && exit 1)
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -125,7 +133,8 @@ jobs:
           IMG="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest"
           docker pull $IMG
           docker run -d --name api -p 8000:8000 $IMG
-          sleep 20
+          echo "Waiting for model to load (TensorFlow init ~30-45s)..."
+          sleep 45
 
       - name: Smoke tests - Health
         run: |

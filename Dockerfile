@@ -9,6 +9,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Application
 COPY . /app
 
+# Verify model exists (fail build if missing)
+RUN test -f /app/models/model.h5 || test -f /app/models/model.keras || (echo "Model file missing in image" && exit 1)
+
 # Ensure src is importable
 ENV PYTHONPATH=/app
 
