@@ -3,9 +3,19 @@
 set -e
 cd "$(dirname "$0")/.."
 
+echo "=== 0. Install dependencies ==="
+pip install -q -r requirements.txt
+
+echo ""
 echo "=== 1. Trigger CI/CD ==="
-echo "<!-- $(date) -->" >> README.md
-git add . && git commit -m "Demo $(date +%Y-%m-%d)" && git push
+if git config user.email >/dev/null 2>&1 && git config user.name >/dev/null 2>&1; then
+  echo "<!-- $(date) -->" >> README.md
+  git add . && git commit -m "Demo $(date +%Y-%m-%d)" && git push
+else
+  echo "Skipping git push (config not set). Run first:"
+  echo "  git config --global user.email 'you@example.com'"
+  echo "  git config --global user.name 'Your Name'"
+fi
 
 echo ""
 echo "=== 2. Local Docker Demo ==="
