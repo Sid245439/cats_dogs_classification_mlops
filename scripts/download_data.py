@@ -28,6 +28,12 @@ def ensure_directories():
 def download_via_kaggle():
     """Download from Kaggle. Dataset: tongpython/cat-and-dog or similar."""
     try:
+        import ssl
+
+        # Fix SSL on corporate networks: KAGGLE_SSL_VERIFY=0 skips cert verification
+        if os.environ.get("KAGGLE_SSL_VERIFY", "1") == "0":
+            ssl._create_default_https_context = ssl._create_unverified_context
+
         import kaggle
         kaggle.api.authenticate()
         kaggle.api.dataset_download_files(
@@ -39,6 +45,7 @@ def download_via_kaggle():
         return True
     except Exception as e:
         logger.warning(f"Kaggle download failed: {e}")
+        logger.info("Using sample dataset instead.")
         return False
 
 

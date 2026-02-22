@@ -3,9 +3,9 @@
 set -e
 cd "$(dirname "$0")/.."
 
-echo "=== 0. Install dependencies ==="
-pip install --upgrade pip setuptools
-pip install -q -r requirements.txt
+echo "=== 0. Setup venv (MLflow, setuptools) ==="
+./scripts/setup_venv.sh
+PYTHON=./venv/bin/python
 
 echo ""
 echo "=== 1. Trigger CI/CD ==="
@@ -20,9 +20,9 @@ fi
 
 echo ""
 echo "=== 2. Local Docker Demo ==="
-python scripts/download_data.py
-python scripts/prepare_data.py
-python -c "from src.training import train_and_track; train_and_track(epochs=2)"
+$PYTHON scripts/download_data.py
+$PYTHON scripts/prepare_data.py
+$PYTHON -c "from src.training import train_and_track; train_and_track(epochs=2)"
 docker build -t cats-dogs-mlops .
 docker rm -f api 2>/dev/null || true
 # No volume mount - model is baked into image (COPY happens after training)
@@ -32,9 +32,9 @@ echo ""
 echo "Waiting for API..."
 sleep 15
 
-curl -s http://localhost:8000/health | python -m json.tool
+curl -s http://localhost:8000/health | $PYTHON -m json.tool
 echo ""
-python scripts/smoke_test.py http://localhost:8000
+$PYTHON scripts/smoke_test.py http://localhost:8000
 
 echo ""
 echo "Done! API at http://localhost:8000 | Stop: docker rm -f api"

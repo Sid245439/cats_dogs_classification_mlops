@@ -1,7 +1,7 @@
 # MLOps Assignment 2 - Cats vs Dogs
 # Version pinning for reproducibility
 
-setuptools>=65.0.0
+setuptools>=65.0.0,<75.0.0
 # Core
 numpy==1.26.4
 pillow==10.2.0
