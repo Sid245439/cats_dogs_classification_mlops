@@ -6,8 +6,14 @@ Baseline: Simple CNN for Cats vs Dogs binary classification.
 import logging
 from pathlib import Path
 
-import mlflow
-import mlflow.keras
+try:
+    import mlflow
+    import mlflow.keras
+    MLFLOW_AVAILABLE = True
+except ImportError as e:
+    logging.warning(f"MLflow not available: {e}. Training without experiment tracking.")
+    MLFLOW_AVAILABLE = False
+
 import numpy as np
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix
 import matplotlib
@@ -61,10 +67,12 @@ def train_and_track(
     X_test = data["X_test"]
     y_test = data["y_test"]
 
-    mlflow.set_experiment(experiment_name)
+    if MLFLOW_AVAILABLE:
+        mlflow.set_experiment(experiment_name)
+        mlflow.start_run(run_name="cnn-baseline")
 
-    with mlflow.start_run(run_name="cnn-baseline"):
-        model = build_cnn()
+    model = build_cnn()
+    if MLFLOW_AVAILABLE:
         mlflow.log_params({
             "model": "simple_cnn",
             "epochs": epochs,
@@ -72,25 +80,27 @@ def train_and_track(
             "input_shape": list(X_train.shape[1:]),
         })
 
-        history = model.fit(
-            X_train, y_train,
-            validation_data=(X_val, y_val),
-            epochs=epochs,
-            batch_size=batch_size,
-            verbose=1,
-        )
+    history = model.fit(
+        X_train, y_train,
+        validation_data=(X_val, y_val),
+        epochs=epochs,
+        batch_size=batch_size,
+        verbose=1,
+    )
 
-        # Log metrics
-        train_acc = history.history["accuracy"][-1]
-        val_acc = history.history["val_accuracy"][-1]
+    # Log metrics
+    train_acc = history.history["accuracy"][-1]
+    val_acc = history.history["val_accuracy"][-1]
+    if MLFLOW_AVAILABLE:
         mlflow.log_metrics({
             "train_accuracy": train_acc,
             "val_accuracy": val_acc,
         })
 
-        # Eval on test
-        y_pred = np.argmax(model.predict(X_test), axis=1)
-        test_acc = accuracy_score(y_test, y_pred)
+    # Eval on test
+    y_pred = np.argmax(model.predict(X_test), axis=1)
+    test_acc = accuracy_score(y_test, y_pred)
+    if MLFLOW_AVAILABLE:
         mlflow.log_metrics({
             "test_accuracy": test_acc,
             "test_precision": precision_score(y_test, y_pred, zero_division=0),
@@ -98,34 +108,34 @@ def train_and_track(
             "test_f1": f1_score(y_test, y_pred, zero_division=0),
         })
 
-        # Confusion matrix artifact
-        cm = confusion_matrix(y_test, y_pred)
-        fig, ax = plt.subplots(figsize=(6, 4))
-        sns.heatmap(cm, annot=True, fmt="d", cmap="Blues", ax=ax,
-                    xticklabels=["cat", "dog"], yticklabels=["cat", "dog"])
-        ax.set_title("Confusion Matrix")
-        plt.tight_layout()
-        cm_path = "logs/confusion_matrix.png"
-        plt.savefig(cm_path, dpi=100)
-        plt.close()
+    # Confusion matrix artifact
+    cm = confusion_matrix(y_test, y_pred)
+    fig, ax = plt.subplots(figsize=(6, 4))
+    sns.heatmap(cm, annot=True, fmt="d", cmap="Blues", ax=ax,
+                xticklabels=["cat", "dog"], yticklabels=["cat", "dog"])
+    ax.set_title("Confusion Matrix")
+    plt.tight_layout()
+    cm_path = "logs/confusion_matrix.png"
+    plt.savefig(cm_path, dpi=100)
+    plt.close()
+    if MLFLOW_AVAILABLE:
         mlflow.log_artifact(cm_path)
 
-        # Loss curve
-        fig, ax = plt.subplots(figsize=(6, 4))
-        ax.plot(history.history["loss"], label="train")
-        ax.plot(history.history["val_loss"], label="val")
-        ax.set_title("Loss Curve")
-        ax.legend()
-        plt.tight_layout()
-        loss_path = "logs/loss_curve.png"
-        plt.savefig(loss_path, dpi=100)
-        plt.close()
+    # Loss curve
+    fig, ax = plt.subplots(figsize=(6, 4))
+    ax.plot(history.history["loss"], label="train")
+    ax.plot(history.history["val_loss"], label="val")
+    ax.set_title("Loss Curve")
+    ax.legend()
+    plt.tight_layout()
+    loss_path = "logs/loss_curve.png"
+    plt.savefig(loss_path, dpi=100)
+    plt.close()
+    if MLFLOW_AVAILABLE:
         mlflow.log_artifact(loss_path)
-
-        import mlflow.keras
         mlflow.keras.log_model(model, "model")
 
-        # Save for inference service (.h5 for reproducibility)
-        model.save("models/model.h5")
-        logger.info(f"Model saved to models/model.h5, test_acc={test_acc:.4f}")
-        return model
+    # Save for inference service (.h5 for reproducibility)
+    model.save("models/model.h5")
+    logger.info(f"Model saved to models/model.h5, test_acc={test_acc:.4f}")
+    return model

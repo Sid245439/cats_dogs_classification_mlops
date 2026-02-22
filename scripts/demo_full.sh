@@ -4,6 +4,7 @@ set -e
 cd "$(dirname "$0")/.."
 
 echo "=== 0. Install dependencies ==="
+pip install --upgrade pip setuptools
 pip install -q -r requirements.txt
 
 echo ""
