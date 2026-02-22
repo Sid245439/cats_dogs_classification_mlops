@@ -55,3 +55,6 @@ coverage.xml
 # Kaggle
 kaggle.json
 .kaggle/
+
+# One-time push script (contains credentials - do not commit)
+push_to_github.sh
