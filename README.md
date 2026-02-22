@@ -109,3 +109,4 @@ git add .dvc data/processed.dvc models.dvc
 - [x] CD (deploy on main), smoke tests
 - [x] Logging, Prometheus metrics
 - [x] Post-deploy performance tracking
+<!-- Sun Feb 22 16:17:17 IST 2026 -->
