@@ -2,12 +2,7 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# System deps (Pillow/TF work without libgl; libglib2.0 for image handling)
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    libglib2.0-0 \
-    && rm -rf /var/lib/apt/lists/*
-
-# Python deps
+# Python deps (no apt packages – avoids Debian version conflicts)
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
