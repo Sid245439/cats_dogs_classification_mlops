@@ -76,6 +76,8 @@ uvicorn app:app --host 0.0.0.0 --port 8000
 
    **Without Docker:** `brew install prometheus` (macOS), then `prometheus --config.file=monitoring/prometheus-host.yml`.
 
+   **No data?** See `scripts/prometheus_troubleshoot.md`. Quick checks: `curl localhost:8000/metrics`, then http://localhost:9090/targets (target must be UP).
+
 ### Stress test (for Prometheus metrics)
 
 ```bash

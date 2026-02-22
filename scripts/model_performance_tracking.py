@@ -18,14 +18,15 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 
 def create_synthetic_batch(n=20, seed=42):
-    """Create synthetic images + labels for testing (simulated requests)."""
+    """Create synthetic images matching training data pattern (download_data create_sample_dataset)."""
     np.random.seed(seed)
     images, labels = [], []
     for i in range(n):
-        label = i % 2  # alternate cat/dog
-        arr = np.random.randint(50, 200, (224, 224, 3), dtype=np.uint8)
-        if label == 0:  # cat
-            arr[:, :50] = np.clip(arr[:, :50] + 20, 0, 255).astype(np.uint8)
+        label = i % 2  # alternate cat/dog (0=cat, 1=dog)
+        base = np.random.randint(50, 200, (224, 224, 3), dtype=np.uint8)
+        if label == 0:  # cat - same as training: left 100 cols brighter
+            base[:, :100] = np.clip(base[:, :100] + 30, 0, 255).astype(np.uint8)
+        arr = np.clip(base + np.random.randn(224, 224, 3).astype(np.int16) * 5, 0, 255).astype(np.uint8)
         img = Image.fromarray(arr)
         buf = BytesIO()
         img.save(buf, format="JPEG")
@@ -34,10 +35,31 @@ def create_synthetic_batch(n=20, seed=42):
     return images, labels
 
 
+def load_real_test_data(data_dir="data/raw/cats_vs_dogs", max_per_class=20):
+    """Load real test images if available. Returns (images, labels) or (None, None)."""
+    from pathlib import Path
+    test_dir = Path(data_dir) / "test"
+    if not test_dir.exists():
+        return None, None
+    images, labels = [], []
+    for cls_dir in sorted(test_dir.iterdir()):
+        if not cls_dir.is_dir():
+            continue
+        label = 1 if "dog" in cls_dir.name.lower() else 0
+        for fp in list(cls_dir.glob("*.jpg"))[:max_per_class] + list(cls_dir.glob("*.png"))[:5]:
+            try:
+                with open(fp, "rb") as f:
+                    images.append(f.read())
+                labels.append(label)
+            except Exception:
+                pass
+    return (images, labels) if images else (None, None)
+
+
 def evaluate_model(base_url="http://localhost:8000", images=None, labels=None):
     """Send batch to API, collect predictions, compute metrics."""
-    if images is None or labels is None:
-        images, labels = create_synthetic_batch()
+    if not images or not labels:
+        images, labels = create_synthetic_batch(n=40)
 
     predictions = []
     for img_bytes in images:
@@ -75,7 +97,10 @@ def evaluate_model(base_url="http://localhost:8000", images=None, labels=None):
 def main():
     base_url = sys.argv[1] if len(sys.argv) > 1 else "http://localhost:8000"
     print(f"Evaluating model at {base_url}...")
-    metrics = evaluate_model(base_url)
+    images, labels = load_real_test_data()
+    data_src = "real test set" if images else "synthetic (matches training pattern)"
+    print(f"Using: {data_src}")
+    metrics = evaluate_model(base_url, images, labels)
     print(json.dumps(metrics, indent=2))
     out_path = Path("logs/post_deploy_metrics.json")
     out_path.parent.mkdir(exist_ok=True)
